@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Meta Tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Poker Manager: A simple, static web app to track friendly poker game buy-ins, cash-outs, P/L, history, and suggested payouts using local storage.">
+    <meta name="keywords" content="poker, tracker, ledger, buy-in, cash-out, poker manager, game tracker, home game, static web app, local storage, poker night">
+    <meta name="author" content="Poker Manager App">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content=""> <!-- Add deployed URL -->
+    <meta property="og:title" content="Poker Manager - Friendly Game Tracker">
+    <meta property="og:description" content="Track buy-ins, cash-outs, P/L, history, and payouts for your home poker games.">
+    <meta property="og:image" content="logo.svg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content=""> <!-- Add deployed URL -->
+    <meta property="twitter:title" content="Poker Manager - Friendly Game Tracker">
+    <meta property="twitter:description" content="Track buy-ins, cash-outs, P/L, history, and payouts for your home poker games.">
+    <meta property="twitter:image" content="logo.svg">
+
+    <title>Poker Manager</title>
+    <link rel="icon" href="logo.svg" type="image/svg+xml">
+
+    <style>
+        :root {
+            /* Color Variables (Light/Dark defined below) */
+            --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            --border-radius: 6px;
+            --navbar-height: 60px;
+            --sub-navbar-height: 45px;
+            --transition-speed: 0.2s;
+        }
+
+        /* Light Mode (Default) */
+        :root {
+            --bg-color: #f4f7f9; --container-bg: #ffffff; --border-color: #dfe4e8;
+            --text-color: #333d47; --text-muted-color: #6c757d; --heading-color: #1a2530;
+            --input-border: #ced4da; --shadow-color: rgba(0, 0, 0, 0.08); --navbar-bg: #1a2530;
+            --navbar-text: #ffffff; --sub-navbar-bg: #e9ecef; --sub-navbar-text: #495057;
+            --sub-navbar-hover-bg: #d6dade; --sub-navbar-hover-text: #212529;
+            --modal-overlay-bg: rgba(0, 0, 0, 0.5); --toast-bg: rgba(50, 50, 50, 0.9); --toast-text: #ffffff;
+            --primary-color: #007bff; --primary-hover: #0056b3; --secondary-color: #6c757d; --secondary-hover: #5a6268;
+            --danger-color: #dc3545; --danger-hover: #c82333; --danger-light-bg: rgba(220, 53, 69, 0.1);
+            --success-color: #28a745; --success-hover: #218838; --warning-color: #ffc107; --warning-hover: #e0a800;
+            --info-color: #17a2b8; --info-hover: #138496; --disabled-color: #adb5bd;
+            --table-header-bg: #f8f9fa; --table-row-hover: #f1f5f8;
+            --profit-color: #28a745; --loss-color: #dc3545; --even-color: #555;
+        }
+
+        /* Dark Mode Variables */
+        body.dark-mode {
+            --bg-color: #1a1a1a; --container-bg: #2c2c2c; --border-color: #444;
+            --text-color: #e0e0e0; --text-muted-color: #a0a0a0; --heading-color: #ffffff;
+            --input-border: #555; --shadow-color: rgba(255, 255, 255, 0.08); --navbar-bg: #111;
+             --sub-navbar-bg: #303030; --sub-navbar-text: #b0b0b0; --sub-navbar-hover-bg: #454545; --sub-navbar-hover-text: #ffffff;
+            --table-header-bg: #383838; --table-row-hover: #404040; --modal-overlay-bg: rgba(0, 0, 0, 0.7);
+            --toast-bg: rgba(230, 230, 230, 0.9); --toast-text: #1a1a1a;
+            --profit-color: #34c759; --loss-color: #ff453a; --even-color: #a0a0a0;
+        }
+
+        /* --- Base & General --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 16px; scroll-padding-top: calc(var(--navbar-height) + var(--sub-navbar-height) + 15px); scroll-behavior: smooth; }
+        body { font-family: var(--font-family); line-height: 1.6; background-color: var(--bg-color); color: var(--text-color); padding-top: calc(var(--navbar-height) + var(--sub-navbar-height)); padding-bottom: 60px; transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease; }
+        .container { background-color: var(--container-bg); padding: 20px; border-radius: var(--border-radius); box-shadow: 0 4px 12px var(--shadow-color); width: 95%; max-width: 1000px; margin: 20px auto 0 auto; transition: background-color var(--transition-speed) ease; }
+        h2 { font-size: 1.4rem; margin-top: 30px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); text-align: center; margin-bottom: 25px; color: var(--heading-color); font-weight: 600; transition: color var(--transition-speed) ease, border-color var(--transition-speed) ease; }
+        section { margin-bottom: 30px; padding-top: 15px; }
+        footer { text-align: center; padding: 20px 15px; font-size: 0.85rem; color: var(--text-muted-color); margin-top: 30px; width: 100%; background-color: var(--bg-color); transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease; }
+
+        /* --- Navigation --- */
+        nav.navbar { background-color: var(--navbar-bg); color: var(--navbar-text); padding: 0 15px; height: var(--navbar-height); display: flex; align-items: center; justify-content: space-between; position: fixed; top: 0; left: 0; width: 100%; z-index: 1001; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: background-color var(--transition-speed) ease; }
+        .navbar-left { display: flex; align-items: center; }
+        .logo { height: 35px; margin-right: 10px; vertical-align: middle; }
+        .navbar-brand { font-size: 1.3rem; font-weight: 600; text-decoration: none; color: var(--navbar-text); }
+        .navbar-right { display: flex; align-items: center; gap: 5px; }
+        nav.navbar .nav-button { background: none; border: none; color: var(--navbar-text); padding: 8px; font-size: 1.5rem; margin: 0; cursor: pointer; line-height: 1; border-radius: 50%; }
+        nav.navbar .nav-button:hover { background-color: rgba(255,255,255,0.1); }
+
+        nav.sub-navbar { background-color: var(--sub-navbar-bg); height: var(--sub-navbar-height); display: flex; align-items: center; justify-content: center; padding: 0 15px; position: sticky; top: var(--navbar-height); z-index: 1000; box-shadow: 0 2px 4px rgba(0,0,0,0.05); overflow-x: auto; white-space: nowrap; transition: background-color var(--transition-speed) ease; }
+        nav.sub-navbar a { color: var(--sub-navbar-text); text-decoration: none; padding: 10px 15px; font-size: 0.9rem; font-weight: 500; border-radius: var(--border-radius); transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease; }
+        nav.sub-navbar a:hover, nav.sub-navbar a.active { background-color: var(--sub-navbar-hover-bg); color: var(--sub-navbar-hover-text); }
+        nav.sub-navbar::-webkit-scrollbar { display: none; } nav.sub-navbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- Forms & Inputs --- */
+        .add-player-form-row { display: flex; align-items: flex-end; gap: 15px; }
+        .add-player-inputs { display: flex; align-items: flex-end; gap: 15px; flex-grow: 1; }
+        .add-player-inputs .form-group { margin-bottom: 0; }
+        .add-player-inputs .form-group:first-child { flex: 3; } .add-player-inputs .form-group:last-child { flex: 1; }
+         #add-player-btn { margin-top: 0; margin-bottom: 0; flex-shrink: 0; }
+        @media (max-width: 767px) { .add-player-form-row { flex-direction: column; align-items: stretch; gap: 10px; } #add-player-btn { width: 100%; } }
+        .form-group label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--text-muted-color); font-size: 0.9rem; transition: color var(--transition-speed) ease; }
+        .form-group input[type="text"], .form-group input[type="number"], .form-group select { width: 100%; padding: 10px 12px; border: 1px solid var(--input-border); border-radius: var(--border-radius); font-size: 1rem; background-color: var(--container-bg); color: var(--text-color); transition: border-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease, background-color var(--transition-speed) ease, color var(--transition-speed) ease; }
+        .form-group select { appearance: none; -webkit-appearance: none; -moz-appearance: none; background-repeat: no-repeat; background-position: right 12px center; background-size: 12px 12px; padding-right: 35px; /* Arrow SVG updated in JS */ }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15); }
+        input:invalid { border-color: var(--danger-color); }
+
+        /* --- Buttons --- */
+        button { border: none; padding: 10px 12px; border-radius: var(--border-radius); cursor: pointer; font-size: 0.95rem; font-weight: 500; transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease, color 0.2s ease; margin: 5px 5px 5px 0; line-height: 1.5; vertical-align: middle; -webkit-tap-highlight-color: transparent; display: inline-flex; align-items: center; gap: 6px; }
+        button span.emoji { font-size: 1.1em; line-height: 1; margin-right: 2px; }
+        button:hover { transform: translateY(-1px); box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        button:active { transform: translateY(0px); box-shadow: none; }
+        button:focus { outline: none; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); }
+        button.primary { background-color: var(--primary-color); color: white; } button.primary:hover { background-color: var(--primary-hover); }
+        button.secondary { background-color: var(--secondary-color); color: white; } button.secondary:hover { background-color: var(--secondary-hover); }
+        button.success { background-color: var(--success-color); color: white; } button.success:hover { background-color: var(--success-hover); }
+        button.warning { background-color: var(--warning-color); color: #333; } button.warning:hover { background-color: var(--warning-hover); }
+        button.danger { background-color: var(--danger-color); color: white; } button.danger:hover { background-color: var(--danger-hover); }
+        button.info { background-color: var(--info-color); color: white;} button.info:hover { background-color: var(--info-hover); }
+        #add-player-btn { background-color: var(--success-color);} #add-player-btn:hover { background-color: var(--success-hover); }
+        #new-game-btn { background-color: var(--danger-color); margin-right: 10px;} #new-game-btn:hover { background-color: var(--danger-hover); }
+        #calculate-payout-btn { background-color: var(--primary-color); margin-right: 10px;} #calculate-payout-btn:hover { background-color: var(--primary-hover); }
+        #view-game-history-btn { background-color: var(--secondary-color); } #view-game-history-btn:hover { background-color: var(--secondary-hover); }
+        /* Remove Button */
+        button.remove-btn { background-color: var(--danger-light-bg); color: var(--danger-color); border: 1px solid var(--danger-color); width: 32px; height: 32px; border-radius: 50%; padding: 0; font-size: 1rem; display: inline-flex; align-items: center; justify-content: center; line-height: 1; box-shadow: none; vertical-align: middle; gap: 0; }
+        button.remove-btn:hover { background-color: var(--danger-color); color: white; transform: none; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        button.remove-btn:focus { box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25); border-color: var(--danger-color); }
+        button.remove-btn:active { background-color: var(--danger-hover); }
+        button:disabled { background-color: var(--disabled-color); cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.65; }
+
+        /* --- Table --- */
+        .table-wrapper { margin-top: 20px; width: 100%; }
+        table#player-table { width: 100%; border-collapse: collapse; }
+        table#player-table thead { display: none; }
+        table#player-table tbody tr { display: block; margin-bottom: 15px; border: 1px solid var(--border-color); border-radius: var(--border-radius); background-color: var(--container-bg); padding: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background-color var(--transition-speed) ease, border-color var(--transition-speed) ease; }
+        table#player-table td { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px dashed var(--border-color); text-align: right; white-space: normal; transition: border-color var(--transition-speed) ease; }
+        table#player-table td::before { content: attr(data-label); font-weight: 600; text-align: left; margin-right: 10px; color: var(--heading-color); flex-basis: auto; flex-shrink: 0; white-space: nowrap; align-self: center; transition: color var(--transition-speed) ease; }
+        table#player-table tr td:last-of-type { border-bottom: none; }
+        /* Player Name Cell mobile alignment */
+         table#player-table td:first-child { white-space: normal; }
+         .player-name-wrapper { display: flex; align-items: center; margin-left: auto; text-align: right; justify-content: flex-end; flex-grow: 1; }
+         .player-rank-emoji { margin-right: 8px; font-size: 1.2em; line-height: 1; flex-shrink: 0; }
+        /* Action buttons mobile alignment */
+        table#player-table td.actions { padding-top: 10px; }
+        table#player-table td.actions::before { flex-grow: 0; }
+        .action-buttons { margin-left: auto; text-align: right; flex-shrink: 0; display: flex; gap: 5px; flex-wrap: nowrap; align-items: center; }
+        @media (max-width: 420px) { .action-buttons { flex-wrap: wrap; justify-content: flex-end; gap: 3px;} .action-buttons button { padding: 6px 8px; font-size: 0.8rem; gap: 3px; margin: 2px 0;} .action-buttons button .emoji { font-size: 1em; } button.remove-btn { width: 26px; height: 26px; font-size: 0.8rem; } }
+
+        /* Desktop Table */
+        @media (min-width: 768px) {
+            .container { padding: 30px 40px; }
+            h2 { font-size: 1.5rem; }
+            table#player-table thead { display: table-header-group; }
+            table#player-table tbody tr { display: table-row; margin-bottom: 0; border: none; border-radius: 0; background-color: transparent; padding: 0; box-shadow: none; border-bottom: 1px solid var(--border-color); }
+            table#player-table tbody tr:last-child { border-bottom: none; }
+            table#player-table tbody tr:hover { background-color: var(--table-row-hover); }
+            table#player-table td { display: table-cell; padding: 14px 16px; border-bottom: none; text-align: left; white-space: nowrap; justify-content: initial; align-items: initial; vertical-align: middle; }
+            table#player-table td::before { display: none; }
+            table#player-table td:first-child { width: auto; }
+            .player-name-wrapper { margin-left: 0; text-align: left; justify-content: flex-start;}
+            table#player-table td.actions { display: flex; justify-content: flex-end; align-items: center; white-space: nowrap;}
+            th { background-color: var(--table-header-bg); font-weight: 600; color: var(--heading-color); font-size: 0.9rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 14px 16px; text-align: left; border-bottom: 2px solid var(--border-color); transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease, border-color var(--transition-speed) ease; }
+            th.actions-header { text-align: right; }
+        }
+
+        /* --- Summary & Timer --- */
+        .summary-section { text-align: center; }
+        .summary-section p { font-size: 1rem; margin-bottom: 12px; text-align: left; }
+        .summary-section strong { color: var(--heading-color); min-width: 180px; display: inline-block; font-weight: 500; transition: color var(--transition-speed) ease; }
+        .timer-section { text-align: center; }
+        #timer-display { font-size: 2rem; font-weight: 600; color: var(--primary-color); margin-bottom: 15px; transition: color var(--transition-speed) ease, border-color var(--transition-speed) ease; border: 2px solid var(--primary-color); border-radius: var(--border-radius); padding: 5px 15px; display: inline-block; min-width: 120px; }
+        .timer-controls { text-align: center; }
+        .profit { color: var(--profit-color); font-weight: 600; transition: color var(--transition-speed) ease; }
+        .loss { color: var(--loss-color); font-weight: 600; transition: color var(--transition-speed) ease; }
+        .even { color: var(--even-color); font-weight: 600; transition: color var(--transition-speed) ease; }
+        #pl-verification { font-weight: bold; margin-left: 5px; font-size: 0.9rem;}
+        #pl-verification.balanced { color: var(--success-color); }
+        #pl-verification.unbalanced { color: var(--danger-color); }
+
+        /* --- Modals & Toast --- */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: var(--modal-overlay-bg); align-items: center; justify-content: center; padding: 15px; transition: background-color var(--transition-speed) ease;}
+        .modal-content { background-color: var(--container-bg); padding: 25px; border-radius: var(--border-radius); box-shadow: 0 5px 15px rgba(0,0,0,0.2); width: 100%; max-width: 500px; position: relative; transition: background-color var(--transition-speed) ease; }
+        .modal-header { border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px; transition: border-color var(--transition-speed) ease; }
+        .modal-header h3 { margin: 0; font-size: 1.3rem; color: var(--heading-color); font-weight: 600; transition: color var(--transition-speed) ease; }
+        .modal-body { max-height: 60vh; overflow-y: auto; }
+        .modal-body .form-group { margin-bottom: 20px; }
+        .modal-footer { text-align: right; padding-top: 15px; margin-top: 15px; border-top: 1px solid var(--border-color); transition: border-color var(--transition-speed) ease; }
+        .modal-footer button { margin-left: 8px; }
+        .close-btn { position: absolute; top: 8px; right: 12px; font-size: 1.6rem; font-weight: bold; color: #aaa; background: none; border: none; cursor: pointer; padding: 5px; line-height: 1; }
+        .close-btn:hover, .close-btn:focus { color: var(--text-color); text-decoration: none; transition: color var(--transition-speed) ease; }
+        #history-list, #payout-list, #confirm-message { list-style: none; padding: 0; margin: 0; }
+        #history-list li, #payout-list li { padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; transition: border-color var(--transition-speed) ease; }
+        #history-list li:last-child, #payout-list li:last-child { border-bottom: none; }
+        #history-list .history-time { color: var(--text-muted-color); font-size: 0.85rem; margin-right: 10px; }
+        #payout-list strong, #history-list strong { font-weight: 600; }
+        .payout-warning { color: var(--loss-color); font-weight: bold; margin-bottom: 15px; transition: color var(--transition-speed) ease; }
+        #confirm-message { font-size: 1.1rem; margin-bottom: 15px; line-height: 1.5; }
+        .setting-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .setting-item label { margin-bottom: 0; }
+        .setting-item .form-group { max-width: 150px; }
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; border-radius: 26px; transition: .4s; }
+        .toggle-slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; border-radius: 50%; transition: .4s; }
+        input:checked + .toggle-slider { background-color: var(--primary-color); }
+        input:focus + .toggle-slider { box-shadow: 0 0 1px var(--primary-color); }
+        input:checked + .toggle-slider:before { transform: translateX(24px); }
+        #toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+        .toast { background-color: var(--toast-bg); color: var(--toast-text); padding: 12px 18px; border-radius: var(--border-radius); box-shadow: 0 3px 8px rgba(0,0,0,0.15); opacity: 0; transform: translateX(100%); transition: opacity 0.5s ease, transform 0.5s ease; font-size: 0.95rem; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="navbar-left">
+            <img src="logo.svg" alt="Poker Manager Logo" class="logo">
+            <span class="navbar-brand">Poker Manager</span>
+        </div>
+        <div class="navbar-right"> <!-- Wrapper for right-side buttons -->
+            <button id="readme-link-btn" class="nav-button" aria-label="View README on GitHub">❓</button>
+            <button id="settings-btn" class="nav-button" aria-label="Settings">⚙️</button>
+        </div>
+    </nav>
+
+     <!-- Sub-Navigation Bar -->
+     <nav class="sub-navbar">
+        <a href="#add-player-section">Add Player</a>
+        <a href="#player-tracking-section">Tracking</a>
+        <a href="#game-summary-section">Summary</a>
+        <a href="#timer-section">Timer</a>
+    </nav>
+
+    <div class="container">
+
+        <!-- Section: Add Player -->
+        <section id="add-player-section" class="form-section">
+            <h2>Add New Player</h2>
+            <div class="add-player-form-row">
+                <div class="add-player-inputs">
+                    <div class="form-group">
+                        <label for="player-name">Player Name:</label>
+                        <input type="text" id="player-name" placeholder="Enter unique player name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="initial-buyin">Buy-in:</label>
+                        <input type="number" id="initial-buyin" placeholder="0" min="0" step="1">
+                    </div>
+                </div>
+                <button id="add-player-btn" class="success"><span class="emoji">👤</span> Add Player</button>
+            </div>
+        </section>
+
+        <!-- Section: Player List & Tracking -->
+        <section id="player-tracking-section" class="tracking-section">
+            <h2>Player Tracking</h2>
+            <div class="table-wrapper">
+                <table id="player-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Buy-in</th>
+                            <th>Cash-Out</th>
+                            <th>P/L</th>
+                            <th class="actions-header">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="player-list">
+                         <tr><td colspan="5" data-label="Status" style="text-align:center; padding: 30px; color: var(--text-muted-color); display: block;">Loading players...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Section: Game Summary -->
+        <section id="game-summary-section" class="summary-section">
+            <h2>Game Summary</h2>
+            <p><strong>Pot (Buy-ins):</strong> <span id="total-pot">0</span></p>
+            <p><strong>Amount Cashed Out:</strong> <span id="total-cashed-out-span">0</span></p>
+            <p><strong>Verification (P/L):</strong> <span id="total-pl">0</span> <span id="pl-verification"></span></p>
+             <button id="new-game-btn" class="danger"><span class="emoji">🧼</span> New Game</button>
+             <button id="calculate-payout-btn" class="primary"><span class="emoji">💸</span> Calculate Payouts</button>
+             <button id="view-game-history-btn" class="secondary"><span class="emoji">📜</span> Game History</button>
+        </section>
+
+        <!-- Section: Timer -->
+        <section id="timer-section" class="timer-section">
+            <h2>Game Timer</h2>
+            <p id="timer-display">00:00</p>
+            <div class="timer-controls">
+                <button id="start-timer-btn" class="info"><span class="emoji">▶️</span> Start</button>
+                <button id="stop-timer-btn" class="info"><span class="emoji">⏹️</span> Stop</button>
+                <button id="reset-timer-btn" class="secondary"><span class="emoji">🔄</span> Reset</button>
+            </div>
+        </section>
+
+    </div> <!-- End .container -->
+
+    <footer>
+        Poker Manager | Simple static tracker using Local Storage.
+    </footer>
+
+    <!-- Modals -->
+    <div id="buy-in-modal" class="modal"> <div class="modal-content"> <button class="close-btn" onclick="hideModal('buy-in-modal')" aria-label="Close">×</button> <div class="modal-header"> <h3 id="buy-in-modal-title">Buy-In for Player</h3> </div> <div class="modal-body"> <input type="hidden" id="buy-in-player-id"> <div class="form-group"> <label for="buy-in-amount">Buy-In Amount (<span class="currency-symbol">$</span>):</label> <input type="number" id="buy-in-amount" min="1" step="1" placeholder="Enter amount" required> </div> </div> <div class="modal-footer"> <button class="secondary" onclick="hideModal('buy-in-modal')">Cancel</button> <button id="confirm-buy-in-btn" class="primary">Confirm Buy-In</button> </div> </div> </div>
+    <div id="cash-out-modal" class="modal"> <div class="modal-content"> <button class="close-btn" onclick="hideModal('cash-out-modal')" aria-label="Close">×</button> <div class="modal-header"> <h3 id="cash-out-modal-title">Cash-Out for Player</h3> </div> <div class="modal-body"> <input type="hidden" id="cash-out-player-id"> <div class="form-group"> <label for="cash-out-amount">Cash-Out Amount (<span class="currency-symbol">$</span>):</label> <input type="number" id="cash-out-amount" min="1" step="1" placeholder="Enter amount" required> </div> </div> <div class="modal-footer"> <button class="secondary" onclick="hideModal('cash-out-modal')">Cancel</button> <button id="confirm-cash-out-btn" class="warning">Confirm Cash-Out</button> </div> </div> </div>
+    <div id="history-modal" class="modal"> <div class="modal-content"> <button class="close-btn" onclick="hideModal('history-modal')" aria-label="Close">×</button> <div class="modal-header"> <h3>Game History</h3> </div> <div class="modal-body"> <ul id="history-list"><li>No game history yet.</li></ul> </div> <div class="modal-footer"> <button class="secondary" onclick="hideModal('history-modal')">Close</button> </div> </div> </div>
+    <div id="payout-modal" class="modal"> <div class="modal-content"> <button class="close-btn" onclick="hideModal('payout-modal')" aria-label="Close">×</button> <div class="modal-header"> <h3>Suggested Payouts</h3> </div> <div class="modal-body"> <div id="payout-warning" class="payout-warning" style="display: none;"> Warning: The game P/L is not balanced. Payouts may be inaccurate. </div> <ul id="payout-list"><li>No payouts needed or calculated yet.</li></ul> </div> <div class="modal-footer"> <button class="secondary" onclick="hideModal('payout-modal')">Close</button> </div> </div> </div>
+    <div id="settings-modal" class="modal"> <div class="modal-content"> <button class="close-btn" onclick="hideModal('settings-modal')" aria-label="Close">×</button> <div class="modal-header"> <h3>Settings</h3> </div> <div class="modal-body"> <div class="setting-item"> <label for="theme-toggle">Dark Mode</label> <label class="toggle-switch"> <input type="checkbox" id="theme-toggle"> <span class="toggle-slider"></span> </label> </div> <div class="setting-item"> <label for="currency-select">Currency Symbol</label> <div class="form-group" style="margin-bottom: 0; flex-grow: 1; max-width: 150px;"> <select id="currency-select"> <option value="$">$ (Dollar)</option> <option value="€">€ (Euro)</option> <option value="£">£ (Pound)</option> <option value="¥">¥ (Yen/Yuan)</option> <option value="₹">₹ (Rupee)</option> </select> </div> </div> </div> <div class="modal-footer"> <button class="secondary" onclick="hideModal('settings-modal')">Close</button> </div> </div> </div>
+    <div id="confirm-modal" class="modal"> <div class="modal-content"> <button class="close-btn" onclick="hideConfirmModal(false)" aria-label="Close">×</button> <div class="modal-header"> <h3 id="confirm-title">Confirmation</h3> </div> <div class="modal-body"> <p id="confirm-message">Are you sure?</p> </div> <div class="modal-footer"> <button id="confirm-cancel-btn" class="secondary" onclick="hideConfirmModal(false)">Cancel</button> <button id="confirm-ok-btn" class="danger">Confirm</button> </div> </div> </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Constants (Final Version) ---
+             const LS_PLAYERS_KEY = 'pokerManagerPlayers_vFinal'; const LS_NEXTID_KEY = 'pokerManagerNextId_vFinal'; const LS_LAST_BUYIN_KEY = 'pokerManagerLastBuyIn_vFinal'; const LS_HISTORY_KEY = 'pokerManagerHistory_vFinal'; const LS_TIMER_START_KEY = 'pokerManagerTimerStart_vFinal'; const LS_TIMER_ACCUMULATED_KEY = 'pokerManagerTimerAccumulated_vFinal'; const LS_TIMER_RUNNING_KEY = 'pokerManagerTimerRunning_vFinal'; const LS_THEME_KEY = 'pokerManagerTheme_vFinal'; const LS_CURRENCY_KEY = 'pokerManagerCurrency_vFinal';
+             const GITHUB_README_URL = "https://https://github.com/jhatzimalis/PokerManager";
+
+            // --- Globals ---
+             let players = []; let nextPlayerId = 0; let lastBuyInAmount = null; let gameHistory = []; let timerInterval = null; let timerSeconds = 0; let timerStartTime = null; let timerIsRunning = false; let currentCurrencySymbol = '$'; let currentTheme = 'light'; let confirmCallback = null;
+
+            // --- DOM Elements ---
+             const bodyElement = document.body; const playerNameInput = document.getElementById('player-name'); const initialBuyinInput = document.getElementById('initial-buyin'); const addPlayerBtn = document.getElementById('add-player-btn'); const playerListBody = document.getElementById('player-list'); const totalPotSpan = document.getElementById('total-pot'); const totalCashedOutSpan = document.getElementById('total-cashed-out-span'); const totalPlSpan = document.getElementById('total-pl'); const plVerificationSpan = document.getElementById('pl-verification'); const newGameBtn = document.getElementById('new-game-btn'); const calculatePayoutBtn = document.getElementById('calculate-payout-btn'); const viewHistoryBtn = document.getElementById('view-game-history-btn'); const timerDisplay = document.getElementById('timer-display'); const startTimerBtn = document.getElementById('start-timer-btn'); const stopTimerBtn = document.getElementById('stop-timer-btn'); const resetTimerBtn = document.getElementById('reset-timer-btn'); const buyInModal = document.getElementById('buy-in-modal'); const cashOutModal = document.getElementById('cash-out-modal'); const historyModal = document.getElementById('history-modal'); const payoutModal = document.getElementById('payout-modal'); const settingsModal = document.getElementById('settings-modal'); const confirmModal = document.getElementById('confirm-modal'); const buyInModalTitle = document.getElementById('buy-in-modal-title'); const cashOutModalTitle = document.getElementById('cash-out-modal-title'); const buyInPlayerIdInput = document.getElementById('buy-in-player-id'); const cashOutPlayerIdInput = document.getElementById('cash-out-player-id'); const buyInAmountInput = document.getElementById('buy-in-amount'); const cashOutAmountInput = document.getElementById('cash-out-amount'); const confirmBuyInBtn = document.getElementById('confirm-buy-in-btn'); const confirmCashOutBtn = document.getElementById('confirm-cash-out-btn'); const historyListUl = document.getElementById('history-list'); const payoutListUl = document.getElementById('payout-list'); const payoutWarningDiv = document.getElementById('payout-warning'); const settingsBtn = document.getElementById('settings-btn'); const readmeLinkBtn = document.getElementById('readme-link-btn'); const themeToggle = document.getElementById('theme-toggle'); const currencySelect = document.getElementById('currency-select'); const confirmTitle = document.getElementById('confirm-title'); const confirmMessage = document.getElementById('confirm-message'); const confirmOkBtn = document.getElementById('confirm-ok-btn'); const confirmCancelBtn = document.getElementById('confirm-cancel-btn'); const toastContainer = document.getElementById('toast-container'); const subNavbarLinks = document.querySelectorAll('.sub-navbar a');
+
+            // --- Utility Functions ---
+             const formatCurrency = (amount) => {
+                if (amount === null || typeof amount === 'undefined' || isNaN(amount)) return `${currentCurrencySymbol} 0`;
+                const options = { style: 'decimal' }; let prefix = currentCurrencySymbol; let numToFormat = amount; let sign = '';
+                if (amount < 0) { sign = '-'; numToFormat = Math.abs(amount); }
+                if (numToFormat % 1 === 0) { options.minimumFractionDigits = 0; options.maximumFractionDigits = 0; } else { options.minimumFractionDigits = 2; options.maximumFractionDigits = 2; }
+                const formattedNumber = numToFormat.toLocaleString('en-US', options);
+                return `${prefix} ${sign}${formattedNumber}`;
+            };
+            const updateCurrencySymbols = (symbol) => { currentCurrencySymbol = symbol; calculateGameSummary(); renderPlayerList(); document.querySelectorAll('.currency-symbol').forEach(span => span.textContent = symbol); };
+            const getPlayerById = (id) => players.find(p => p.id === id);
+            const formatTimestamp = (timestamp) => { if (!timestamp) return ''; return new Date(timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); };
+
+            // --- Toast Notifications ---
+             const showToast = (message, duration = 3000) => { const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = message; toastContainer.appendChild(toast); requestAnimationFrame(() => { requestAnimationFrame(() => { toast.classList.add('show'); }); }); setTimeout(() => { toast.classList.remove('show'); toast.addEventListener('transitionend', () => { if (toast.parentNode) { toast.parentNode.removeChild(toast); } }, { once: true }); }, duration); };
+
+            // --- History Logging ---
+            const logHistoryEvent = (type, playerName, amount = null) => { gameHistory.push({ timestamp: Date.now(), type: type, playerName: playerName, amount: amount }); saveData(); };
+
+             // --- Theme Handling ---
+             const applyTheme = (theme) => { currentTheme = theme; if (theme === 'dark') { bodyElement.classList.add('dark-mode'); themeToggle.checked = true; } else { bodyElement.classList.remove('dark-mode'); themeToggle.checked = false; } const selectArrowColor = theme === 'dark' ? 'e0e0e0' : '333d47'; const svgUrl = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23${selectArrowColor}' viewBox='0 0 16 16'%3E%3Cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E")`; currencySelect.style.backgroundImage = svgUrl; };
+             const toggleTheme = () => { const newTheme = currentTheme === 'light' ? 'dark' : 'light'; applyTheme(newTheme); localStorage.setItem(LS_THEME_KEY, newTheme); };
+
+            // --- Data Persistence ---
+            const saveData = () => { try { localStorage.setItem(LS_PLAYERS_KEY, JSON.stringify(players)); localStorage.setItem(LS_NEXTID_KEY, nextPlayerId.toString()); localStorage.setItem(LS_HISTORY_KEY, JSON.stringify(gameHistory)); if (lastBuyInAmount !== null) { localStorage.setItem(LS_LAST_BUYIN_KEY, lastBuyInAmount.toString()); } else { localStorage.removeItem(LS_LAST_BUYIN_KEY); } localStorage.setItem(LS_TIMER_RUNNING_KEY, timerIsRunning.toString()); localStorage.setItem(LS_TIMER_ACCUMULATED_KEY, timerSeconds.toString()); if (timerIsRunning && timerStartTime) { localStorage.setItem(LS_TIMER_START_KEY, timerStartTime.toString()); } else { localStorage.removeItem(LS_TIMER_START_KEY); } localStorage.setItem(LS_THEME_KEY, currentTheme); localStorage.setItem(LS_CURRENCY_KEY, currentCurrencySymbol); } catch (error) { console.error("Error saving data:", error); } };
+            const loadData = () => { try { const savedTheme = localStorage.getItem(LS_THEME_KEY) || 'light'; applyTheme(savedTheme); const savedCurrency = localStorage.getItem(LS_CURRENCY_KEY) || '$'; updateCurrencySymbols(savedCurrency); currencySelect.value = savedCurrency; const storedPlayers = localStorage.getItem(LS_PLAYERS_KEY); const storedNextId = localStorage.getItem(LS_NEXTID_KEY); if (storedPlayers) { players = JSON.parse(storedPlayers); players.forEach(p => { if (!p.buyIns) p.buyIns = []; if (!p.cashOuts) p.cashOuts = []; }); } else { players = []; } if (storedNextId) { nextPlayerId = parseInt(storedNextId, 10); if (isNaN(nextPlayerId)) nextPlayerId = 0; } else { nextPlayerId = players.length > 0 ? Math.max(...players.map(p => p.id)) + 1 : 0; } const storedHistory = localStorage.getItem(LS_HISTORY_KEY); if (storedHistory) { gameHistory = JSON.parse(storedHistory); } else { gameHistory = []; } const storedLastBuyIn = localStorage.getItem(LS_LAST_BUYIN_KEY); if (storedLastBuyIn) { lastBuyInAmount = parseFloat(storedLastBuyIn); if (isNaN(lastBuyInAmount)) lastBuyInAmount = null;} else { lastBuyInAmount = null; } if(lastBuyInAmount !== null && lastBuyInAmount >= 0) { initialBuyinInput.value = lastBuyInAmount; } else { initialBuyinInput.value = ''; initialBuyinInput.placeholder = '0'; } timerIsRunning = localStorage.getItem(LS_TIMER_RUNNING_KEY) === 'true'; const storedAccumulated = parseInt(localStorage.getItem(LS_TIMER_ACCUMULATED_KEY), 10); let accumulatedSeconds = isNaN(storedAccumulated) ? 0 : storedAccumulated; if (timerIsRunning) { const storedStartTime = parseInt(localStorage.getItem(LS_TIMER_START_KEY), 10); if (!isNaN(storedStartTime)) { const elapsedSinceLoad = Math.floor((Date.now() - storedStartTime) / 1000); timerSeconds = accumulatedSeconds + Math.max(0, elapsedSinceLoad); timerStartTime = storedStartTime; startTimer(true); } else { timerIsRunning = false; timerSeconds = accumulatedSeconds; saveData(); } } else { timerSeconds = accumulatedSeconds; } } catch (error) { console.error("Error loading data:", error); players = []; nextPlayerId = 0; lastBuyInAmount = null; gameHistory = []; timerSeconds = 0; timerIsRunning = false; timerStartTime = null; currentTheme = 'light'; currentCurrencySymbol = '$'; localStorage.clear(); applyTheme('light'); updateCurrencySymbols('$'); alert("Error loading saved data. Starting fresh."); } };
+
+            // --- Core Logic ---
+            const calculatePlayerTotals = (player) => { if (!player) return; player.totalBuyIn = player.buyIns.reduce((sum, current) => sum + current, 0); player.totalCashOut = player.cashOuts.reduce((sum, current) => sum + current, 0); player.profitLoss = player.totalCashOut - player.totalBuyIn; };
+            const calculateGameSummary = () => { let totalPot = 0; let totalCashedOut = 0; let totalPL = 0; players.forEach(player => { calculatePlayerTotals(player); totalPot += player.totalBuyIn; totalCashedOut += player.totalCashOut; totalPL += player.profitLoss; }); totalPotSpan.textContent = formatCurrency(totalPot); totalCashedOutSpan.textContent = formatCurrency(totalCashedOut); totalPlSpan.textContent = formatCurrency(totalPL); if (players.length > 0) { if (Math.abs(totalPL) < 0.01) { plVerificationSpan.textContent = '✅ Balanced'; plVerificationSpan.className = 'balanced'; } else { plVerificationSpan.textContent = `❌ Unbalanced by ${formatCurrency(totalPL)}`; plVerificationSpan.className = 'unbalanced'; } } else { plVerificationSpan.textContent = ''; plVerificationSpan.className = ''; } };
+
+             // --- Ranking Logic (Updated medal assignment) ---
+             const getPlayerRanks = () => {
+                 const tolerance = 0.01;
+                 const rankedPlayers = players
+                     .map(p => ({ id: p.id, profitLoss: p.profitLoss || 0 }))
+                     .filter(p => !isNaN(p.profitLoss))
+                     .sort((a, b) => b.profitLoss - a.profitLoss); // Descending P/L
+
+                 const ranks = { medals: {}, lastPlaceIds: [] };
+                 let currentRank = 0;
+                 let playersAtRank = 0;
+                 let lastProfitLoss = null;
+                 let lowestNegativeProfit = 0;
+
+                 rankedPlayers.forEach((player, index) => {
+                     // Determine Rank (Handles ties)
+                     if (player.profitLoss !== lastProfitLoss || index === 0) {
+                         currentRank += playersAtRank; // Add previous tie count
+                         playersAtRank = 1; // Reset count for new rank
+                         lastProfitLoss = player.profitLoss;
+                         currentRank++; // Increment rank
+                     } else {
+                         playersAtRank++; // Tied player
+                     }
+                     // Assign medal if within the top 3 ranks
+                     if (currentRank <= 3) {
+                         ranks.medals[player.id] = currentRank;
+                     }
+
+                     // Track Last Place (Lowest Negative P/L)
+                     if (player.profitLoss < -tolerance) {
+                         if (player.profitLoss < lowestNegativeProfit) {
+                             lowestNegativeProfit = player.profitLoss;
+                             ranks.lastPlaceIds = [player.id]; // New lowest
+                         } else if (Math.abs(player.profitLoss - lowestNegativeProfit) < tolerance) {
+                             ranks.lastPlaceIds.push(player.id); // Tie for last
+                         }
+                     }
+                 });
+                 // Reset if no negative P/L was found
+                 if(lowestNegativeProfit >= -tolerance) { ranks.lastPlaceIds = []; }
+                 return ranks;
+             };
+
+            // --- Rendering Functions ---
+            const renderPlayerList = () => {
+                 playerListBody.innerHTML = '';
+                 const { medals, lastPlaceIds } = getPlayerRanks();
+
+                 if (players.length === 0) { const placeholderText = 'No players added yet.'; if (window.innerWidth < 768) { playerListBody.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-muted-color); width: 100%;">${placeholderText}</div>`; } else { playerListBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 30px; color: var(--text-muted-color);">${placeholderText}</td></tr>`; } return; }
+
+                 players.forEach(player => {
+                    calculatePlayerTotals(player);
+                    const rank = medals[player.id]; const isLast = lastPlaceIds.includes(player.id); let rankEmoji = '';
+                    if (rank === 1) rankEmoji = '🥇'; else if (rank === 2) rankEmoji = '🥈'; else if (rank === 3) rankEmoji = '🥉'; else if (isLast) rankEmoji = '🐟';
+
+                    const row = document.createElement('tr'); row.setAttribute('data-player-id', player.id);
+                    const nameCell = document.createElement('td'); nameCell.setAttribute('data-label', 'Name');
+                    const nameWrapper = document.createElement('div'); nameWrapper.className = 'player-name-wrapper';
+                    if (rankEmoji) { const emojiSpan = document.createElement('span'); emojiSpan.className = 'player-rank-emoji'; emojiSpan.textContent = rankEmoji; nameWrapper.appendChild(emojiSpan); }
+                    const nameText = document.createTextNode(player.name); nameWrapper.appendChild(nameText); nameCell.appendChild(nameWrapper); row.appendChild(nameCell);
+
+                    const buyinCell = document.createElement('td'); buyinCell.setAttribute('data-label', 'Buy-in'); buyinCell.textContent = formatCurrency(player.totalBuyIn); row.appendChild(buyinCell);
+                    const cashoutCell = document.createElement('td'); cashoutCell.setAttribute('data-label', 'Cash-Out'); cashoutCell.textContent = formatCurrency(player.totalCashOut); row.appendChild(cashoutCell);
+                    const plCell = document.createElement('td'); plCell.setAttribute('data-label', 'P/L'); plCell.className = player.profitLoss > 0 ? 'profit' : player.profitLoss < 0 ? 'loss' : 'even'; plCell.textContent = formatCurrency(player.profitLoss); row.appendChild(plCell);
+
+                    const actionsCell = document.createElement('td'); actionsCell.setAttribute('data-label', 'Actions'); actionsCell.className = 'actions';
+                    const buttonWrapper = document.createElement('div'); buttonWrapper.className = 'action-buttons';
+                    const buyInBtn = document.createElement('button'); buyInBtn.className = 'primary'; buyInBtn.innerHTML = `<span class="emoji">💰</span> Buy-In`; buyInBtn.onclick = () => showBuyInModal(player.id); buttonWrapper.appendChild(buyInBtn);
+                    const cashoutBtn = document.createElement('button'); cashoutBtn.className = 'warning'; cashoutBtn.innerHTML = `<span class="emoji">💱</span> Cash-Out`; cashoutBtn.onclick = () => showCashOutModal(player.id); buttonWrapper.appendChild(cashoutBtn);
+                    const removeBtn = document.createElement('button'); removeBtn.className = 'remove-btn'; removeBtn.innerHTML = '🗑️'; removeBtn.setAttribute('aria-label', 'Remove Player'); removeBtn.onclick = () => handleRemovePlayer(player.id); buttonWrapper.appendChild(removeBtn);
+                    actionsCell.appendChild(buttonWrapper); row.appendChild(actionsCell);
+                    playerListBody.appendChild(row);
+                 });
+            };
+            const renderHistoryModal = () => { historyListUl.innerHTML = ''; if (gameHistory.length === 0) { historyListUl.innerHTML = '<li>No game history yet.</li>'; return; } const sortedHistory = [...gameHistory].sort((a, b) => b.timestamp - a.timestamp); sortedHistory.forEach(event => { const li = document.createElement('li'); let text = `<span class="history-time">${formatTimestamp(event.timestamp)}:</span> `; switch (event.type) { case 'ADD_PLAYER': text += `Player <strong>${event.playerName}</strong> joined.`; break; case 'BUY_IN': text += `<strong>${event.playerName}</strong> bought in for ${formatCurrency(event.amount)}.`; break; case 'CASH_OUT': text += `<strong>${event.playerName}</strong> cashed out ${formatCurrency(event.amount)}.`; break; case 'REMOVE_PLAYER': text += `Player <strong>${event.playerName}</strong> removed.`; break; default: text += `Unknown event: ${event.type}`; } li.innerHTML = text; historyListUl.appendChild(li); }); };
+             const renderPayoutModal = () => { payoutListUl.innerHTML = ''; const totalPL = players.reduce((sum, p) => sum + (p.profitLoss || 0), 0); if (Math.abs(totalPL) >= 0.01) { payoutWarningDiv.style.display = 'block'; payoutWarningDiv.textContent = `Warning: Game P/L is unbalanced by ${formatCurrency(totalPL)}. Payouts may be inaccurate.`; } else { payoutWarningDiv.style.display = 'none'; } const payouts = calculatePayouts(); if (payouts.length === 0) { if (players.length > 0 && players.every(p => Math.abs(p.profitLoss || 0) < 0.01)) { payoutListUl.innerHTML = '<li>Everyone broke even! No payouts needed.</li>'; } else { payoutListUl.innerHTML = '<li>No payouts needed or calculated yet.</li>'; } return; } payouts.forEach(payout => { const li = document.createElement('li'); li.innerHTML = `<strong>${payout.from}</strong> pays <strong>${payout.to}</strong>: ${formatCurrency(payout.amount)}`; payoutListUl.appendChild(li); }); };
+
+             // --- Modal Handling ---
+              window.showBuyInModal = (playerId) => { const player = getPlayerById(playerId); if (!player) return; buyInModalTitle.textContent = `Buy-In for ${player.name}`; buyInPlayerIdInput.value = playerId; buyInAmountInput.value = lastBuyInAmount !== null ? lastBuyInAmount : ''; buyInModal.style.display = 'flex'; buyInAmountInput.focus(); buyInAmountInput.select(); };
+              window.showCashOutModal = (playerId) => { const player = getPlayerById(playerId); if (!player) return; cashOutModalTitle.textContent = `Cash-Out for ${player.name}`; cashOutPlayerIdInput.value = playerId; cashOutAmountInput.value = ''; cashOutModal.style.display = 'flex'; cashOutAmountInput.focus(); };
+              window.hideModal = (modalId) => { document.getElementById(modalId).style.display = 'none'; };
+              window.showHistoryModal = () => { renderHistoryModal(); historyModal.style.display = 'flex'; };
+              window.showPayoutModal = () => { renderPayoutModal(); payoutModal.style.display = 'flex'; };
+              window.showSettingsModal = () => { settingsModal.style.display = 'flex'; };
+              window.showConfirmModal = (message, callback, title = "Confirmation", confirmClass = "danger") => { confirmMessage.textContent = message; confirmTitle.textContent = title; confirmCallback = callback; confirmOkBtn.className = confirmClass; confirmModal.style.display = 'flex'; };
+              window.hideConfirmModal = (confirmed) => { confirmModal.style.display = 'none'; if (confirmed && typeof confirmCallback === 'function') { confirmCallback(); } confirmCallback = null; };
+
+            // --- Payout Calculation ---
+            const calculatePayouts = () => { const payouts = []; const tolerance = 0.01; let debtors = players.filter(p => p.profitLoss < -tolerance).map(p => ({ name: p.name, amountOwed: Math.abs(p.profitLoss) })); let creditors = players.filter(p => p.profitLoss > tolerance).map(p => ({ name: p.name, amountDue: p.profitLoss })); while (debtors.length > 0 && creditors.length > 0) { const debtor = debtors[0]; const creditor = creditors[0]; const transferAmount = Math.min(debtor.amountOwed, creditor.amountDue); if (transferAmount > tolerance) { payouts.push({ from: debtor.name, to: creditor.name, amount: transferAmount }); debtor.amountOwed -= transferAmount; creditor.amountDue -= transferAmount; } if (debtor.amountOwed < tolerance) { debtors.shift(); } if (creditor.amountDue < tolerance) { creditors.shift(); } } return payouts; };
+
+            // --- Modal Submissions ---
+            const handleModalBuyInSubmit = () => { const playerId = parseInt(buyInPlayerIdInput.value, 10); const player = getPlayerById(playerId); const amount = parseFloat(buyInAmountInput.value); if (!player) { hideModal('buy-in-modal'); return; } if (isNaN(amount) || amount <= 0) { alert('Invalid amount. Please enter a positive number.'); buyInAmountInput.focus(); return; } player.buyIns.push(amount); lastBuyInAmount = amount; logHistoryEvent('BUY_IN', player.name, amount); showToast(`${player.name} bought in for ${formatCurrency(amount)}`); finalizeTransaction(); hideModal('buy-in-modal'); };
+             const handleModalCashOutSubmit = () => { const playerId = parseInt(cashOutPlayerIdInput.value, 10); const player = getPlayerById(playerId); const amount = parseFloat(cashOutAmountInput.value); if (!player) { hideModal('cash-out-modal'); return; } if (isNaN(amount) || amount <= 0) { alert('Invalid amount. Please enter a positive number.'); cashOutAmountInput.focus(); return; } player.cashOuts.push(amount); logHistoryEvent('CASH_OUT', player.name, amount); showToast(`${player.name} cashed out ${formatCurrency(amount)}`); finalizeTransaction(); hideModal('cash-out-modal'); };
+            const finalizeTransaction = () => { calculateGameSummary(); renderPlayerList(); saveData(); };
+
+            // --- Event Handlers ---
+            const handleAddPlayer = () => { const name = playerNameInput.value.trim(); let initialBuyin = parseFloat(initialBuyinInput.value); if (!name) { showToast("Please enter a player name."); playerNameInput.focus(); return; } if (players.some(p => p.name.toLowerCase() === name.toLowerCase())) { showToast(`Player "${name}" already exists.`); playerNameInput.focus(); return; } if (initialBuyinInput.value.trim() === '' || isNaN(initialBuyin) || initialBuyin < 0) { initialBuyin = 0; } lastBuyInAmount = initialBuyin; const newPlayer = { id: nextPlayerId++, name: name, buyIns: [], cashOuts: [], totalBuyIn: 0, totalCashOut: 0, profitLoss: 0 }; logHistoryEvent('ADD_PLAYER', name); showToast(`Player ${name} added.`); if (initialBuyin > 0) { newPlayer.buyIns.push(initialBuyin); logHistoryEvent('BUY_IN', name, initialBuyin); showToast(`${name} initial buy-in: ${formatCurrency(initialBuyin)}`); } players.push(newPlayer); playerNameInput.value = ''; if (lastBuyInAmount !== null && lastBuyInAmount >= 0) { initialBuyinInput.value = lastBuyInAmount; } else { initialBuyinInput.value = ''; initialBuyinInput.placeholder = '0'; } calculateGameSummary(); renderPlayerList(); saveData(); };
+            const handleRemovePlayer = (playerId) => { const player = getPlayerById(playerId); if (!player) return; showConfirmModal(`Are you sure you want to permanently remove ${player.name}?`, () => { logHistoryEvent('REMOVE_PLAYER', player.name); players = players.filter(p => p.id !== playerId); showToast(`Player ${player.name} removed.`); calculateGameSummary(); renderPlayerList(); saveData(); }, "Remove Player Confirmation"); };
+            const handleNewGame = () => { if (players.length > 0) { showConfirmModal('Start a New Game? All current player data and history will be permanently deleted.', () => { players = []; nextPlayerId = 0; lastBuyInAmount = null; gameHistory = []; initialBuyinInput.value = ''; initialBuyinInput.placeholder = '0'; resetTimer(); renderPlayerList(); calculateGameSummary(); saveData(); showToast("New game started!"); }, "New Game Confirmation"); } else { showToast("New game started (no previous data)."); } };
+
+            // --- Timer Logic --- (Identical)
+              const updateTimerDisplay = () => { const minutes = Math.floor(timerSeconds / 60); const seconds = timerSeconds % 60; timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`; }; const startTimer = (reloading = false) => { if (timerInterval) clearInterval(timerInterval); if (!reloading) { timerStartTime = Date.now(); timerIsRunning = true; localStorage.setItem(LS_TIMER_ACCUMULATED_KEY, timerSeconds.toString()); saveData(); showToast("Timer started."); } else if (!timerStartTime) { console.warn("Timer reload requested without a valid start time."); stopTimer(); return; } stopTimerBtn.disabled = false; startTimerBtn.disabled = true; timerInterval = setInterval(() => { const elapsed = Math.floor((Date.now() - timerStartTime) / 1000); const baseSeconds = parseInt(localStorage.getItem(LS_TIMER_ACCUMULATED_KEY) || "0", 10); timerSeconds = baseSeconds + Math.max(0, elapsed); updateTimerDisplay(); }, 1000); }; const stopTimer = () => { if (timerInterval) clearInterval(timerInterval); timerInterval = null; if (timerIsRunning && timerStartTime) { const elapsed = Math.floor((Date.now() - timerStartTime) / 1000); const baseSeconds = parseInt(localStorage.getItem(LS_TIMER_ACCUMULATED_KEY) || "0", 10); timerSeconds = baseSeconds + Math.max(0, elapsed); } timerIsRunning = false; timerStartTime = null; saveData(); updateTimerDisplay(); stopTimerBtn.disabled = true; startTimerBtn.disabled = false; showToast("Timer stopped."); }; const resetTimer = () => { stopTimer(); timerSeconds = 0; timerIsRunning = false; timerStartTime = null; localStorage.removeItem(LS_TIMER_START_KEY); localStorage.removeItem(LS_TIMER_ACCUMULATED_KEY); localStorage.removeItem(LS_TIMER_RUNNING_KEY); updateTimerDisplay(); startTimerBtn.disabled = false; stopTimerBtn.disabled = true; showToast("Timer reset."); };
+
+            // --- Sub-Navbar Smooth Scroll ---
+            subNavbarLinks.forEach(link => { link.addEventListener('click', (e) => { e.preventDefault(); const targetId = link.getAttribute('href'); const targetElement = document.querySelector(targetId); if (targetElement) { targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' }); } }); });
+
+            // --- Event Listeners ---
+              addPlayerBtn.addEventListener('click', handleAddPlayer); playerNameInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { addPlayerBtn.click(); } }); initialBuyinInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') { addPlayerBtn.click(); } }); newGameBtn.addEventListener('click', handleNewGame); viewHistoryBtn.addEventListener('click', showHistoryModal); calculatePayoutBtn.addEventListener('click', showPayoutModal); settingsBtn.addEventListener('click', showSettingsModal); readmeLinkBtn.addEventListener('click', () => { window.open(GITHUB_README_URL, '_blank', 'noopener,noreferrer'); }); startTimerBtn.addEventListener('click', () => startTimer(false)); stopTimerBtn.addEventListener('click', stopTimer); resetTimerBtn.addEventListener('click', resetTimer); confirmBuyInBtn.addEventListener('click', handleModalBuyInSubmit); confirmCashOutBtn.addEventListener('click', handleModalCashOutSubmit); confirmOkBtn.addEventListener('click', () => hideConfirmModal(true)); confirmCancelBtn.addEventListener('click', () => hideConfirmModal(false)); themeToggle.addEventListener('change', toggleTheme); currencySelect.addEventListener('change', (event) => { updateCurrencySymbols(event.target.value); saveData(); showToast(`Currency set to ${event.target.value}`); });
+              // Add Enter key listener for modals
+              buyInAmountInput.addEventListener('keydown', (event) => { if(event.key === 'Enter') { confirmBuyInBtn.click(); }});
+              cashOutAmountInput.addEventListener('keydown', (event) => { if(event.key === 'Enter') { confirmCashOutBtn.click(); }});
+              // Close modals
+              window.addEventListener('click', (event) => { if (event.target.classList.contains('modal')) { hideModal(event.target.id); } }); window.addEventListener('keydown', (event) => { if (event.key === 'Escape') { const visibleModal = document.querySelector('.modal[style*="display: flex"]'); if (visibleModal) { if (visibleModal.id === 'confirm-modal') { hideConfirmModal(false); } else { hideModal(visibleModal.id); } } } });
+
+
+            // --- Initial Setup ---
+            loadData(); calculateGameSummary(); renderPlayerList(); updateTimerDisplay();
+            startTimerBtn.disabled = timerIsRunning; stopTimerBtn.disabled = !timerIsRunning;
+            showToast("Ledger loaded.");
+
+        });
+    </script>
+
+</body>
+</html>
